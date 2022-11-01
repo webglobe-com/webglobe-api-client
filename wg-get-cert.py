@@ -1,3 +1,5 @@
+#!/usr/bin/python3
+
 import urllib,requests,json
 import sys, re, signal, os
 import logging
