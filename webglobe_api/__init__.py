@@ -1,3 +1,5 @@
+__all__ = ['wg_get_cert']
+
 import urllib,requests,json
 import sys, re, signal, os
 import logging

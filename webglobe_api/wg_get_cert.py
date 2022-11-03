@@ -1,14 +1,12 @@
-#!/usr/bin/python3
+#!/usr/bin/python
 
 import urllib,requests,json
 import sys, re, signal, os
 import logging
 
-sys.path.append('.')
+from . import WebglobeAPI
 
-from webglobe_api import WebglobeAPI
-
-if __name__ == "__main__":
+def get_cert_cli():
     import getopt
     import sys
     try:
@@ -51,11 +49,13 @@ if __name__ == "__main__":
         domain = list(filter(lambda item: item[1] == domain, api.domains().items()))[0][0]
     except:
         raise
-    cert_list = api.get(f'{domain}/ssl')['ssls']
+    cert_list = api.get('{domain}/ssl'.format(domain=domain))['ssls']
     if cn is not None:
+        # get certificate by cn
         cert = list(filter(lambda item: item['domain_name'] == cn, cert_list))[0]
     else:
-        cert = cert_list[0]
+        # get certificate with shortest cn
+        cert = list(sorted(cert_list, key=lambda item: len(item['domain_name'])))[0]
     
     if cert['crt'][-1] != '\n':
         cert['crt'] = cert['crt'] + '\n'
