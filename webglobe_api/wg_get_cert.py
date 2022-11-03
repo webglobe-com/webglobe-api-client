@@ -5,7 +5,7 @@ def get_cert_cli():
     from argparse import ArgumentParser
     import os
 
-    parser = ArgumentParser(prog=__name__)
+    parser = ArgumentParser()
     parser.add_argument('-u', '--username', required=True)
     parser.add_argument('-p', '--password', required=True)
     parser.add_argument('-c', '--certout', required=True)
