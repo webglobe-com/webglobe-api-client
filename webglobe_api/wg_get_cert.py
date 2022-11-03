@@ -1,58 +1,32 @@
 #!/usr/bin/python
 
-import urllib,requests,json
-import sys, re, signal, os
-import logging
-
-from . import WebglobeAPI
-
 def get_cert_cli():
-    import getopt
-    import sys
-    try:
-        opts, args = getopt.getopt(sys.argv[1:], "u:p:k:c:d:", ["username=","password=","keyout=","certout=","onchange=","domain=","cn="])
-    except:
-        logging.error(getopt.GetoptError)
-        sys.exit(1)
-    
-    username = None
-    password = None
-    keyout = None
-    certout = None
-    onchange = None
-    domain = None
-    cn = None
-    callback_login = False
-    
-    for opt, arg in opts:
-        if opt in ('-u','--username'):
-            username = arg
-        elif opt in ('-p','--password'):
-            password = arg
-        elif opt in ('-k','--keyout'):
-            keyout = arg
-        elif opt in ('-c','--certout'):
-            certout = arg
-        elif opt in ('-d','--domain'):
-            domain = arg
-        elif opt in ('--cn'):
-            cn = arg
-        elif opt in ('--onchange',):
-            onchange = arg
-        else:
-            raise ValueError('Invalid opt %s %s' % (opt,arg))
+    from . import WebglobeAPI
+    from argparse import ArgumentParser
+    import os
+
+    parser = ArgumentParser(prog=__name__)
+    parser.add_argument('-u', '--username', required=True)
+    parser.add_argument('-p', '--password', required=True)
+    parser.add_argument('-c', '--certout', required=True)
+    parser.add_argument('-k', '--keyout', required=True)
+    parser.add_argument('-d', '--domain', required=True)
+    parser.add_argument('--cn')
+    parser.add_argument(('--onchange'))
+
+    args = parser.parse_args()
     
     api = WebglobeAPI('https://api.webglobe.com')
     
-    api.login(username,password)
+    api.login(args.username,args.password)
     try:
-        domain = list(filter(lambda item: item[1] == domain, api.domains().items()))[0][0]
+        domain = list(filter(lambda item: item[1] == args.domain, api.domains().items()))[0][0]
     except:
         raise
     cert_list = api.get('{domain}/ssl'.format(domain=domain))['ssls']
-    if cn is not None:
+    if args.cn is not None:
         # get certificate by cn
-        cert = list(filter(lambda item: item['domain_name'] == cn, cert_list))[0]
+        cert = list(filter(lambda item: item['domain_name'] == args.cn, cert_list))[0]
     else:
         # get certificate with shortest cn
         cert = list(sorted(cert_list, key=lambda item: len(item['domain_name'])))[0]
@@ -65,30 +39,30 @@ def get_cert_cli():
         cert['key'] = cert['key'] + '\n'
     changed = True
 
-    if os.path.exists(keyout) and os.path.exists(certout):
-        if keyout != certout:
-            if open(certout).read().strip() == (cert['crt']+cert['chain']).strip() and open(keyout).read().strip() == cert['key'].strip():
+    if os.path.exists(args.keyout) and os.path.exists(args.certout):
+        if args.keyout != args.certout:
+            if open(args.certout).read().strip() == (cert['crt']+cert['chain']).strip() and open(args.keyout).read().strip() == cert['key'].strip():
                 changed = False
         else:
-            if open(keyout).read().strip() ==  (cert['crt'] + cert['chain'] + cert['key']).strip():
+            if open(args.keyout).read().strip() ==  (cert['crt'] + cert['chain'] + cert['key']).strip():
                 changed = False 
     if changed:
-        if keyout != certout:
-            fh = open(certout,'w')
+        if args.keyout != args.certout:
+            fh = open(args.certout,'w')
             fh.write(cert['crt'])
             fh.write(cert['chain'])
             fh.close()
-            fh = open(keyout,'w')
+            fh = open(args.keyout,'w')
             fh.write(cert['key'])
             fh.close()
         else:
-            fh = open(keyout,'w')
+            fh = open(args.keyout,'w')
             fh.write(cert['crt'])
             fh.write(cert['chain'])
             fh.write(cert['key'])
             fh.close()
-        if onchange != None:
+        if args.onchange != None:
             import subprocess
-            subprocess.check_call(onchange,shell=True)
+            subprocess.check_call(args.onchange,shell=True)
     
         
